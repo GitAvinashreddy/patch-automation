@@ -1,186 +1,234 @@
 ---
 ### LOGS ###
+- name: distro data
+  debug:
+    msg: "{{ansible_distribution  }}"
+  tags:
+    - logs
+
+- name: show subscription status
+  block:
+    - name: get RHEL subscription status
+      shell: "subscription-manager status"
+      register: rhel_subscription
+      ignore_errors: true
+      when: "ansible_distribution == 'RedHat'"
+    - debug:
+        msg: "{{ rhel_subscription.stdout_lines }}"
+      when: "ansible_distribution == 'RedHat'"
+    - name: get SUSE/SLES subscription status
+      shell: "SUSEConnect -s"
+      register: suse_subscription
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+      ignore_errors: true
+    - debug:
+        msg: "{{ suse_subscription.stdout_lines }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+  tags:
+    - logs
+
 - name: get timestamp
   block:
     - name: retrieve timestamp
       shell: "echo -e  \"Date is `date | awk '{print $3 \" \" $2 \" \" $6}'` and time is `date | awk '{print $4}'`\""
       register: timestamp
-    - name: set fact timestamp
-      set_fact:
-        results_logs: "{{ results_logs|combine({'timestamp': '\n'.join(timestamp.stdout_lines)\}) }}"
     - name: write timestamp
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "{{ timestamp.stdout }}"
+      debug:
+        msg: "{{ timestamp.stdout_lines }}"
+  tags:
+    - logs
 - name: get uptime data
   block:
     - name: retrieve uptime info
       shell: "echo -e   \"Uptime is `uptime | awk '{print $3 \" \" $4}'`\""
       register: uptime
-    - name: set fact uptime
-      set_fact:
-        results_logs: "{{ results_logs|combine({'uptime': '\n'.join(uptime.stdout_lines)}) }}"
     - name: write uptime info
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "{{ uptime.stdout }}"
+      debug:
+        msg: "{{ uptime.stdout_lines }}"
+  tags:
+    - logs
 - name: mounted FS data
   block:
     - name: retrive df file systems data output
       shell: "echo -e  \"Total `df -hP | awk '{print $1 \" \" $6}' | sort | wc -l` FS are mounted\""
       register: df_total
-    - name: set fact df
-      set_fact:
-        results_logs: "{{ results_logs|combine({'df-total': '\n'.join(df_total.stdout_lines)}) }}"
     - name: write df output
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "{{ df_total.stdout }}"
-- name: retrieve Mem/CPU info
+      debug:
+        msg: "{{ df_total.stdout_lines }}"
+  tags:
+    - logs
+- name: list FS that are below 3GB available
   block:
-    - name: read Mem/CPU data
-      shell: "echo -e  \"Total CPU: `cat /proc/cpuinfo  | grep \"processor\" | wc -l` Memory: `cat /proc/meminfo | grep -i memtotal | awk '{print $2}'` kb before recycle\""
-      register: cpu_total
-    - name: set fact cpu
-      set_fact:
-        results_logs: "{{ results_logs|combine({'cpu-total': '\n'.join(cpu_total.stdout_lines)}) }}"
-    - name: dump CPU data
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "{{ cpu_total.stdout }}"
-- name:  log ifcfg network scripts
-  block:
-    - name: read ifcfg network scripts
-      shell: "cat /etc/sysconfig/network-scripts/ifcfg-*"
-      ignore_errors: true
-      register: ifcfg_net_scripts
-    - name: set fact ifcfg net
-      set_fact:
-        results_logs: "{{ results_logs|combine({'ifcfg_net': '\n'.join(ifcfg_net_scripts.stdout_lines)\}) }}"
-    - name: write ufcfg network scripts
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/network-scripts"
-        content: "{{ ifcfg_net_scripts.stdout }}"
-    - name: write backup msg to log file
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "Backup of Netowrk scrips saved at {{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/network-scripts"
-- name: backup /etc/hosts file
-  block:
-    - name: read /etc/hosts file
-      shell: "cat /etc/hosts"
-      register: hosts
-    - name: set fact hosts
-      set_fact:
-        results_logs: "{{ results_logs|combine({'hosts': '\n'.join(hosts.stdout_lines)\}) }}"
-    - name: write /etc/hosts backup
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/hosts"
-        content: "{{ hosts.stdout }}"
-    - name: write /etc/hosts backup msg
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "Backup of host file saved at {{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/hosts"
+    - name: retrieve df output
+      shell: "df -hP | awk '$4~/(^[0-9]+\\.?[0-9]+[KM])|(^[1-3]G)|(^[1-2]\\.[0-9]G)/'"
+      register: low_space_fs
+    - name: show FS with small capacity available
+      debug:
+        msg: "{{ low_space_fs.stdout_lines }}"
+  tags:
+    - logs
 - name: retrieve fstab data
   block:
     - name: read /etc/fstab data
       shell: "cat /etc/fstab"
       register: fstab
-    - name: set fact fstab
-      set_fact:
-        results_logs: "{{ results_logs|combine({'fstab': '\n'.join(fstab.stdout_lines)}) }}"
     - name: write /etc/fstab backup
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/fstab"
-        content: "{{ fstab.stdout }}"
-    - name: write /etc/fstab backup msg
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "Backup of fstab file saved at {{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/fstab"
+      debug:
+        msg: "{{ fstab.stdout_lines }}"
+  tags:
+    - logs
 - name: retrieve lvsdisplay data
   block:
     - name: get lvsdisplay output
       shell: "lvdisplay"
       ignore_errors: true
       register: lvsdisplay
-    - name: set fact
-      set_fact:
-        results_logs: "{{ results_logs|combine({'lvsdisplay': '\n'.join(lvsdisplay.stdout_lines)}) }}"
     - name: dump lvsdisplay output
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lvdisplay"
-        content: "lvsdsiplay.stdout"
-    - name: write blvsdisplay backup msg
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "Backup of lvdisplay  saved at {{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lvdisplay"
+      debug:
+        msg: "{{ lvsdisplay.stdout_lines }}"
+  tags:
+    - logs
+- name:  log ifcfg network scripts
+  block:
+    - name: read ifcfg network scripts RedHat
+      shell: "cat /etc/sysconfig/network-scripts/ifcfg-*"
+      ignore_errors: true
+      register: ifcfg_net_scripts_rhel
+      when: "ansible_distribution == 'RedHat'"
+    - name: read ifcfg network scripts Ubuntu
+      shell: "cat /etc/network/interfaces"
+      ignore_errors: true
+      register: ifcfg_net_scripts_ubuntu
+      when: "ansible_distribution == 'Ubuntu'"
+    - name: read network cfg files SUSE/SLES [PRE]
+      shell: "cat /etc/sysconfig/network/ifcfg-*"
+      ignore_errors: true
+      register: ifcfg_net_scripts_suse
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+    - name: write ifcfg network scripts
+      debug:
+        msg: "{{ ifcfg_net_scripts_rhel.stdout_lines }}"
+      when: "ansible_distribution == 'RedHat'"
+    - name: write ifcfg network scripts
+      debug:
+        msg: "{{ ifcfg_net_scripts_ubuntu.stdout_lines }}"
+      when: "ansible_distribution == 'Ubuntu'"
+    - name: write ifcfg network scripts
+      debug:
+        msg: "{{ ifcfg_net_scripts_suse.stdout_lines }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+  tags:
+    - logs
+- name: backup /etc/hosts file
+  block:
+    - name: read /etc/hosts file
+      shell: "cat /etc/hosts"
+      register: hosts
+    - name: write /etc/hosts backup
+      debug:
+        msg: "{{ hosts.stdout_lines }}"
+  tags:
+    - logs
 - name: get ifconfig data
   block:
     - name: retrieve ifconfig output
       shell: "ifconfig -a"
       ignore_errors: true
-      register: ifcfg
-    - name: set ifconfig fact
-      set_fact:
-        results_logs: "{{ results_logs|combine({'ifconfig': '\n'.join(ifcfg.stdout_lines)}) }}"
+      register: ifcfg_rpm
+      when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) or ansible_distribution=='RedHat'"
+    - name: retrieve ifconfig output
+      shell: "/sbin/ifconfig -a"
+      ignore_errors: true
+      register: ifcfg_deb
+      when: "ansible_distribution == 'Ubuntu'"
     - name: write ifconfig data
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/ifconfig"
-        content: "Backup of ifconfig -a saved at {{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/ifconfig"
-    - name: write ifconfig backup message
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "Backup of ifconfig -a saved at /root/pre-post/ifconfig"
+      debug:
+        msg: "{{ ifcfg_rpm.stdout_lines }}"
+      when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) or ansible_distribution=='RedHat'"
+    - name: write ifconfig data
+      debug:
+        msg: "{{ ifcfg_deb.stdout_lines }}"
+      when: "ansible_distribution == 'Ubuntu'"
+  tags:
+    - logs
+- name: retrieve Mem/CPU info
+  block:
+    - name: read Mem/CPU data
+      shell: "echo -e  \"Total CPU: `cat /proc/cpuinfo  | grep \"processor\" | wc -l` Memory: `cat /proc/meminfo | grep -i memtotal | awk '{print $2}'` kb before recycle\""
+      register: cpu_total
+    - name: dump CPU data
+      debug:
+        msg: "{{ cpu_total.stdout_lines }}"
+  tags:
+    - logs
 - name: list java processes
   block:
     - name: check Java processes
       shell: "ps -ef | grep java | grep -v \"grep\" | awk NR==1'{print $1}'"
       register: crit_processes
-    - name: set critical processes fact
-      set_fact:
-        results_logs: "{{ results_logs|combine({'java': '\n'.join(crit_processes)}) }}"
     - name: dump critical java processes to log
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line:     "Some critical proccess are running in background. Check ps -ef"
-      when: "{{ crit_processes.stdout_lines|length!=0 }}"
+      debug:
+        msg: "Some critical proccess are running in background. Check ps -ef.\n{{ crit_processes.stdout_lines }}"
+      when: "crit_processes.stdout_lines|length!=0"
+  tags:
+    - logs
+- name: list oracle processes
+  block:
+    - name: checking pmon process for oracle data base
+      shell: "ps -ef | grep -i pmon | grep -v grep"
+      ignore_errors: true
+      register: oracle_pmon
+    - debug:
+        msg: "{{ oracle_pmon.stdout_lines }}"
+  tags:
+    - logs
+- name: list network sockets/ports of running services
+  block:
+    - name: get networking mapping
+      shell: "ss -tulpn"
+      ignore_errors: true
+      register: services_ports
+    - debug:
+        msg: "{{ services_ports.stdout_lines }}"
+  tags:
+    - logs
+- name: list running services
+  block:
+    - name: list services that up
+      shell: "systemctl status {{ item }}"
+      ignore_errors: true
+      register: running_services
+      with_items: "{{ services_to_monitor }}"
+    - debug:
+        msg: "{{ item.stdout_lines or item.stderr_lines }}"
+      with_items: "{{ running_services.results }}"
+  tags:
+    - logs
 - name: list warnings and errors /var/log/messages
   block:
-    - name: read /var/log/messages
-      shell:  "cat /var/log/messages | sed -n -e '/error/p' -e'/warn/p'  | awk NR==1'{print $1}'"
-      ignore_errors: true
-      register: log_messages_events_error
-    - name: set log messages fact
-      set_fact:
-        results_logs:
-          - "{{ results_logs|combine({'log_messages_errors': '\n'.join(log_messages_events_error.stdout_lines)}) }}"
     - name: count /var/log/messages errors and warnings
-      shell: "cat /var/log/messages | sed -n -e '/error/p' -e'/warn/p'|wc -l"
+      shell: "cat /var/log/messages | sed -n -e '/error/p' -e'/warn/p' | wc -l"
       ignore_errors: true
       register: var_log_errors_and_warnings_num
-    - name: write crtitical alerts log message
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "{{ var_log_errors_and_warnings_num.stdout }} critical error/warning messages found."
+    - name: write critical alerts log message
+      debug:
+        msg: "{{ var_log_errors_and_warnings_num.stdout }} critical error/warning messages found."
+  tags:
+    - logs
 - name: read dmesg errors and warnings
   block:
     - name: verify errors/warnings presence in /var/log/dmesg
       shell: "cat /var/log/dmesg | sed -n -e '/error/p' -e'/warn/p'  | awk NR==1'{print $1}'"
       register: log_dmesg_crit_events
-    - name: set fact log dmesg
-      set_fact:
-        results_logs: "{{ results_logs|combine({'dmesg': '\n'.join(log_dmesg_crit_events.stdout_lines)}) }}"
     - name: log critical alerts
-      blockinfile:
-        block: "{{ '\n'.join(log_dmesg_crit_events.stdout_lines) }}"
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-      when: log_dmesg_crit_events.stdout_lines|length!=0
+      debug:
+        msg: "{{ log_dmesg_crit_events.stdout_lines }}"
+      when: "log_dmesg_crit_events.stdout_lines|length!=0"
     - name: log absence critical alerts
-      lineinfile:
-        path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        line: "No critical alerts found in /var/log/dmesg"
-      when: log_dmesg_crit_events.stdout_lines|length==0
-- name: write logs collection finished
-  lineinfile:
-    path: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-    line: "###################################### PRECHECK LOGS COLLECTED  #########################################################"
+      debug:
+        msg: "No critical alerts found in /var/log/dmesg"
+      when: "log_dmesg_crit_events.stdout_lines|length==0"
+  tags:
+    - logs
+- debug:
+    msg:  "######################################## DONE GATHERING SYSINFO ###########################################################"

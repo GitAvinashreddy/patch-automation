@@ -1,195 +1,249 @@
 ---
-- name: initialize prechecks
-  block:
-    - name: begin precheck
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/pre-log"
-        content:  "######################################## TAKING PRECHECK LOGS ########################################################.stdout###"
-  tags:
-    - pre
 - name: verify hostname
   block:
-    - name: read hostname
+    - name: read hostname [PRE]
       shell: hostname
       register: hostname
     - name: set fact [hostname]
       set_fact:
-        results_pre: "{{ results_pre | combine({'hostname-pre': '\n'.join(hostname.stdout_lines) }) }}"
+        results_pre: "{{ results_pre | combine({'hostname': hostname.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: write hostname
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/hostname-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/hostname"
         content: "{{ hostname.stdout }}"
   tags:
     - pre
 - name: distribution info
   block:
-    - name: get uname output
+    - name: get uname output [PRE]
       shell: uname -r
       register: uname
     - name: set uname fact
       set_fact:
-        results_pre: "{{ results_pre|combine({'uname-pre': '\n'.join(uname.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'uname': uname.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: dump uname output
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/uname-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/uname"
         content: "{{ uname.stdout }}"
   tags:
     - pre
 - name: check routes info
   block:
-    - name: grab routes
+    - name: grab routes [PRE]
       shell: "route -n | sort"
       register: route
     - name: set fact routes
       set_fact:
-        results_pre: "{{ results_pre|combine({'route-pre': '\n'.join(route.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'route': route.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: log routes info
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/route-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/route"
         content: "{{ route.stdout }}"
   tags:
     - pre
 - name: Find the disk utilization
   block:
-    - name: get df output
+    - name: get df output [PRE]
       shell: "df -hP | awk '{print $1 \" \" $6}' | sort"
       register: df
     - name: set df fact
       set_fact:
-        results_pre: "{{ results_pre|combine({'df-pre': '\n'.join(df.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'df': df.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: dump df output
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/df-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/df"
         content: "{{ df.stdout }}"
-  tags:
-    - pre
-- name: get sysconfig networking info
-  block:
-    - name: read network cfg file
-      shell:  "cat /etc/sysconfig/network"
-      ignore_errors: true
-      register: syscfg_net
-    - name: set fact syscfg network
-      set_fact:
-        results_pre: "{{ results_pre|combine({'syscfg_net-pre': '\n'.join(syscfg_net.stdout_lines) }) }}"
-    - name: write syscfg network data
-      copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sys-network-pre"
-        content: "{{ syscfg_net.stdout }}"
   tags:
     - pre
 - name: retrieve mounts info
   block:
-    - name: get mount output
+    - name: get mount output [PRE]
       shell: "mount -l | sort"
       register: mounts
     - name: set fact mounts
       set_fact:
-        results_pre: "{{ results_pre|combine({'mounts-pre': '\n'.join(mounts.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'mounts': mounts.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: dump mounts info
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/mount-l-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/mount-l"
         content: "{{ mounts.stdout }}"
   tags:
     - pre
 - name: get fdisks info
   block:
-    - name: get fdisk output
+    - name: get fdisk output [PRE]
       shell: "fdisk -l"
       register: fdisk
     - name: set fact fdisk
       set_fact:
-        results_pre: "{{ results_pre|combine({'fdisk-pre': '\n'.join(fdisk.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'fdisk': fdisk.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: write fdisk output
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/fdisk-l-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/fdisk-l"
         content: "{{ fdisk.stdout }}"
   tags:
     - pre
 - name: retrieve lsblk info
   block:
-    - name: get lsblk output
+    - name: get lsblk output [PRE]
       shell: "lsblk"
       register: lsblk
     - name: set fact lsblk
       set_fact:
-        results_pre: "{{ results_pre|combine({'lsblk-pre': '\n'.join(lsblk.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'lsblk': lsblk.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: dump lsblk output
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lsblk-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lsblk"
         content: "{{ lsblk.stdout }}"
   tags:
     - pre
 - name: retrieve lvs info
   block:
-    - name: get lvs output
+    - name: get lvs output [PRE]
       shell: "lvs | sort"
       register: lvs
     - name: set fact lvs
       set_fact:
-        results_pre: "{{ results_pre|combine({'lvs-pre': '\n'.join(lvs.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'lvs': lvs.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: write lvs info
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lvs-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/lvs"
         content: "{{ lvs.stdout }}"
+  tags:
+    - pre
+- name: get multipath output
+  block:
+    - name: retrieve multipath data
+      shell: "multipath -ll"
+      ignore_errors: true
+      register: multipath
+    - set_fact:
+        results_pre: "{{ results_pre|combine({'multipath': multipath.stdout.replace(\"'\", '\"')|quote }) }}"
+    - name: write multipath data
+      copy:
+        dest: "{{ remote_logs_path }}/{{ ansible_host }}/pre/mulipath"
+        content: "{{ multipath.stdout }}"
+  tags:
+    - pre
+- name: get sysconfig networking info
+  block:
+    - name: read network cfg file RedHat [PRE]
+      shell:  "cat /etc/sysconfig/network"
+      ignore_errors: true
+      register: syscfg_net_rhel
+      when: "ansible_distribution == 'RedHat'"
+    - name: read network cfg file Ubuntu [PRE]
+      shell: "cat /etc/netplan/01-netcfg.yaml"
+      ignore_errors: true
+      register: syscfg_net_ubuntu
+      when: "ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '18'"
+    - name: read network cfg files SUSE/SLES [PRE]
+      shell: "cat /etc/networks"
+      ignore_errors: true
+      register: syscfg_net_suse
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+    - name: set fact syscfg network
+      set_fact:
+        results_pre: "{{ results_pre|combine({'syscfg_net': syscfg_net_rhel.stdout.replace(\"'\", '\"')|quote }) }}"
+      when: "ansible_distribution == 'RedHat'"
+    - name: set fact syscfg network
+      set_fact:
+        results_pre: "{{ results_pre|combine({'syscfg_net': syscfg_net_ubuntu.stdout.replace(\"'\", '\"')|quote }) }}"
+      when: "ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '18'"
+    - name: set fact syscfg network
+      set_fact:
+        results_pre: "{{ results_pre|combine({'syscfg_net': syscfg_net_suse.stdout.replace(\"'\", '\"')|quote }) }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+    - name: write syscfg network data
+      copy:
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sys-network"
+        content: "{{ syscfg_net_rhel.stdout }}"
+      when: "ansible_distribution == 'RedHat'"
+    - name: write syscfg network data
+      copy:
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sys-network"
+        content: "{{ syscfg_net_ubuntu.stdout }}"
+      when: "ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '18'"
+    - name: write syscfg network data
+      copy:
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sys-network"
+        content: "{{ syscfg_net_suse.stdout }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
   tags:
     - pre
 - name: read iptables service status
   block:
-    - name: get sysctl iptables services status
+    - name: get sysctl iptables services status [PRE]
       shell: "service iptables status"
       ignore_errors: true
       register: iptables
     - name: set fact iptables
       set_fact:
-        results_pre: "{{ results_pre|combine({'iptables-pre': '\n'.join(iptables.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'iptables': iptables.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: write iptables service status
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/iptables-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/iptables"
         content: "{{ iptables.stdout }}"
   tags:
     - pre
 - name: read firewalld service status
   block:
-    - name: get iptables sysctl status
+    - name: get firewalld sysctl status [PRE]
       shell: "service firewalld status"
       ignore_errors: true
-      register: firewalld
+      register: firewalld_rpm
+      when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) or ansible_distribution=='RedHat'"
+    - name: get ufw sysctl status [PRE]
+      shell: "service ufw status"
+      ignore_errors: true
+      register: firewalld_deb
+      when: "ansible_distribution == 'Ubuntu'"
     - name: set fact firewalld
       set_fact:
-        results_pre: "{{ results_pre|combine({'firewalld': '\n'.join(firewalld.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'firewalld': firewalld_rpm.stdout.replace(\"'\", '\"')|quote }) }}"
+      when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) or ansible_distribution=='RedHat'"
+    - name: set fact firewalld
+      set_fact:
+        results_pre: "{{ results_pre|combine({'firewalld': firewalld_deb.stdout.replace(\"'\", '\"')|quote }) }}"
+      when: "ansible_distribution == 'Ubuntu'"
     - name: write firewlld service status
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/firewall-pre"
-        content: "{{ firewalld.stdout }}"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/firewall"
+        content: "{{ firewalld_rpm.stdout }}"
+      when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) or ansible_distribution=='RedHat'"
+    - name: write firewlld service status
+      copy:
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/firewall"
+        content: "{{ firewalld_deb.stdout }}"
+      when: "ansible_distribution == 'Ubuntu'"
   tags:
     - pre
 - name: read sssd service status
   block:
-    - name: get sysctl sssd service status
+    - name: get sysctl sssd service status [PRE]
       shell: "systemctl status sssd | grep -i active"
       ignore_errors: true
       register: sssd
     - name: set fact sssd
       set_fact:
-        results_pre: "{{ results_pre|combine({'sssd-pre': '\n'.join(sssd.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'sssd': sssd.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: write sysctl sssd service status
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sssd-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/sssd"
         content: "{{ sssd.stdout }}"
   tags:
     - pre
 - name: get internet interfaces info
   block:
-    - name: retrieve ip addr output
+    - name: retrieve ip addr output [PRE]
       shell: "ip addr | awk '/^[0-9]+:/ {sub(/:/,\"\",$2); iface=$2 } /^[[:space:]]*inet / {split($2, a, \"/\"); print iface\" : \"a[1]}' | sort"
       register: ipa
     - name: set fact ip address
       set_fact:
-        results_pre: "{{ results_pre|combine({'ipaddress-pre': '\n'.join(ipa.stdout_lines) }) }}"
+        results_pre: "{{ results_pre|combine({'ipaddress': ipa.stdout.replace(\"'\", '\"')|quote }) }}"
     - name: dump ip addr info
       copy:
-        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/ips-pre"
+        dest: "{{ remote_logs_path }}/{{ ansible_ssh_host }}/pre/ips"
         content: "{{ ipa.stdout }}"
   tags:
     - pre
