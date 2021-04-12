@@ -1,5 +1,24 @@
 ---
 
+### SUSE subscription
+- name: subscribe to SUSE/SLES
+  shell: "SUSEConnect -r {{ suse_activation_key }}"
+  ignore_errors: true
+  when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
+  tags:
+    - patching
+
+### RHEL subscription
+- name: subscripbe to RHEL
+  redhat_subscription:
+    activation_key: '{{ activation_key }}'
+    org_id: '{{ organization_id }}'
+    state: present
+    auto_attach: true
+  when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
+  tags:
+    - patching
+
 ### Katello
 - name: update katello package
   yum:
@@ -7,14 +26,6 @@
     state: latest
   ignore_errors: true
   when: "ansible_distribution == 'RedHat'"
-  tags:
-    - patching
-
-### SUSE subscription
-- name: subscribe to SUSE/SLES
-  shell: "SUSEConnect -r 60sv384vw31vv"
-  ignore_errors: true
-  when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
   tags:
     - patching
 

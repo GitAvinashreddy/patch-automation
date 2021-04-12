@@ -9,7 +9,7 @@
 - name: show subscription status
   block:
     - name: get RHEL subscription status
-      shell: "subscription-manager status"
+      shell: "subscription-manager identity"
       register: rhel_subscription
       ignore_errors: true
       when: "ansible_distribution == 'RedHat'"
