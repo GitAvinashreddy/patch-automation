@@ -1,4 +1,25 @@
 ---
+### Subscription status
+- name: show subscription status
+  block:
+    - name: get RHEL subscription status
+      shell: "subscription-manager identity"
+      register: rhel_subscription
+      ignore_errors: true
+      when: "ansible_distribution == 'RedHat'"
+    - debug:
+        msg: "{{ rhel_subscription.stdout_lines }}"
+      when: "ansible_distribution == 'RedHat'"
+    - name: get SUSE/SLES subscription status
+      shell: "SUSEConnect -s"
+      register: suse_subscription
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+      ignore_errors: true
+    - debug:
+        msg: "{{ suse_subscription.stdout_lines }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+  tags:
+    - patching
 
 ### SUSE subscription
 - name: subscribe to SUSE/SLES
@@ -11,7 +32,7 @@
 ### RHEL subscription
 - name: subscripbe to RHEL
   redhat_subscription:
-    activation_key: '{{ activation_key }}'
+    activationkey: '{{ rhel_activation_key }}'
     org_id: '{{ organization_id }}'
     state: present
     auto_attach: true
@@ -23,13 +44,13 @@
 - name: update katello package
   yum:
     name: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
-    state: latest
+    state: present
   ignore_errors: true
   when: "ansible_distribution == 'RedHat'"
   tags:
     - patching
 
-- name: update RHEL 7 OSs & check wether reboot is required
+- name: update RHEL 7 OSs & check whether reboot is required
   block:
     - name: run yum update
       yum:
@@ -42,11 +63,11 @@
       command: needs-restarting -r
       register: rhel_restart_required
       ignore_errors: yes
-  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7\S*')"
-  tags
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7\\S*')"
+  tags:
     - patching
 
-- name: update RHEL OS & check wether reboot is required
+- name: update RHEL 8 OSs & check whether reboot is required
   block:
     - name: run yum update
       yum:
@@ -59,7 +80,7 @@
       command: needs-restarting -r
       register: rhel_restart_required
       ignore_errors: yes
-  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8\*')"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8\\*')"
   tags:
     - patching
 

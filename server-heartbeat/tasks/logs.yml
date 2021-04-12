@@ -2,28 +2,7 @@
 ### LOGS ###
 - name: distro data
   debug:
-    msg: "{{ansible_distribution  }}"
-  tags:
-    - logs
-
-- name: show subscription status
-  block:
-    - name: get RHEL subscription status
-      shell: "subscription-manager identity"
-      register: rhel_subscription
-      ignore_errors: true
-      when: "ansible_distribution == 'RedHat'"
-    - debug:
-        msg: "{{ rhel_subscription.stdout_lines }}"
-      when: "ansible_distribution == 'RedHat'"
-    - name: get SUSE/SLES subscription status
-      shell: "SUSEConnect -s"
-      register: suse_subscription
-      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
-      ignore_errors: true
-    - debug:
-        msg: "{{ suse_subscription.stdout_lines }}"
-      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+    msg: "{{ ansible_distribution }}"
   tags:
     - logs
 
