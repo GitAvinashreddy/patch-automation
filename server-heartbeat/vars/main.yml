@@ -19,8 +19,9 @@ suse_activation_key: !vault |
           6565376263646162650a666139613463343536396533306263623562633236336662643563666334
           3937
 organication_id: 14332861
-rhel_enabled_repos:
+rhel7_enabled_repos:
   - rhel-7-server-e4s-rpms
+rhel8_enabled_repos: []
 #
 centos_enabled_repos:
   - base

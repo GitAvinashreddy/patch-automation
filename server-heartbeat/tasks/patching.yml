@@ -29,20 +29,37 @@
   tags:
     - patching
 
-- name: update RHEL OS & check wether reboot is required
+- name: update RHEL 7 OSs & check wether reboot is required
   block:
     - name: run yum update
       yum:
         name: "*"
         disablerepo: "*"
-        enablerepo: "{{ rhel_enabled_repos }}"
+        enablerepo: "{{ rhel7_enabled_repos }}"
         exclude: "{{ packages_to_exclude }}"
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
       register: rhel_restart_required
       ignore_errors: yes
-  when: "ansible_distribution == 'RedHat'"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7\S*')"
+  tags
+    - patching
+
+- name: update RHEL OS & check wether reboot is required
+  block:
+    - name: run yum update
+      yum:
+        name: "*"
+        disablerepo: "*"
+        enablerepo: "{{ rhel8_enabled_repos }}"
+        exclude: "{{ packages_to_exclude }}"
+        state: latest
+    - name: Check if a reboot is needed on all RHEL based servers
+      command: needs-restarting -r
+      register: rhel_restart_required
+      ignore_errors: yes
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8\*')"
   tags:
     - patching
 
