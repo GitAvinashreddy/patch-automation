@@ -21,22 +21,21 @@
   tags:
     - patching
 
-### SUSE subscription
-- name: subscribe to SUSE/SLES
-  shell: "SUSEConnect -r {{ suse_activation_key }}"
-  ignore_errors: true
-  when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
-  tags:
-    - patching
-
-### RHEL subscription
-- name: subscripbe to RHEL
-  redhat_subscription:
-    activationkey: '{{ rhel_activation_key }}'
-    org_id: '{{ organization_id }}'
-    state: present
-    auto_attach: true
-  when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
+- name: subscription
+  block:
+    ### SUSE subscription
+  - name: subscribe to SUSE/SLES
+    shell: "SUSEConnect -r {{ suse_activation_key }}"
+    ignore_errors: true
+    when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
+  ### RHEL subscription
+  - name: subscripbe to RHEL
+    redhat_subscription:
+      activationkey: '{{ rhel_activation_key }}'
+      org_id: '{{ organization_id }}'
+      state: present
+      auto_attach: true
+    when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
   tags:
     - patching
 
@@ -58,6 +57,7 @@
         disablerepo: "*"
         enablerepo: "{{ rhel7_enabled_repos }}"
         exclude: "{{ packages_to_exclude }}"
+        security: "{{ rhel_security_updates }}"
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
@@ -75,6 +75,7 @@
         disablerepo: "*"
         enablerepo: "{{ rhel8_enabled_repos }}"
         exclude: "{{ packages_to_exclude }}"
+        security: "{{ rhel_security_updates }}"
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
