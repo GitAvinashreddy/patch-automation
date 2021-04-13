@@ -2,8 +2,15 @@
 # vars file for server-heartbeat
 ansible_server_logs_path: /data-export
 remote_logs_path: /data-export
-rhel_enabled_repos:
-  - rhel-7-server-e4s-rpms
+# RHEL vars
+rhel_activation_key: ''
+organization_id: ''
+rhel7_enabled_repos:
+  - rhel-7-server-rpms
+rhel8_enabled_repos: []
+rhel_security_updates: false
+#
+suse_activation_key: ''
 centos_enabled_repos:
   - base
 packages_to_exclude:
