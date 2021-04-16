@@ -49,6 +49,7 @@
       activationkey: '{{ rhel_activation_key }}'
       org_id: '{{ organization_id }}'
       state: present
+      force_register: true
       auto_attach: true
     when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
   tags:
