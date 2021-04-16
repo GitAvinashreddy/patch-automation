@@ -1,14 +1,21 @@
 ---
+- debug:
+    msg: "{{ ansible_distribution_major_version }}"
+  tags:
+    - patching
+
 ### Subscription status
 - name: show subscription status
   block:
     - name: get RHEL subscription status
       shell: "subscription-manager identity"
-      register: rhel_subscription
+      register: rhel_subscription_status
       ignore_errors: true
       when: "ansible_distribution == 'RedHat'"
+    - set_fact:
+        rhel_subscription: '{{ not "This system is not yet registered." in rhel_subscription_status.stdout }}'
     - debug:
-        msg: "{{ rhel_subscription.stdout_lines }}"
+        msg: "{{ rhel_subscription_status.stdout_lines }}"
       when: "ansible_distribution == 'RedHat'"
     - name: get SUSE/SLES subscription status
       shell: "SUSEConnect -s"
@@ -44,14 +51,22 @@
     ignore_errors: true
     when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
   ### RHEL subscription
-  - name: subscripbe to RHEL
+  - name: subscripbe to RHEL 7
     redhat_subscription:
-      activationkey: '{{ rhel_activation_key }}'
+      activationkey: '{{ rhel7_activation_key }}'
       org_id: '{{ organization_id }}'
       state: present
       force_register: true
       auto_attach: true
-    when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7") and not rhel_subscription'
+  - name: subscripbe to RHEL 8
+    redhat_subscription:
+      activationkey: '{{ rhel8_activation_key }}'
+      org_id: '{{ organization_id }}'
+      state: present
+      force_register: true
+      auto_attach: true
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and not rhel_subscription'
   tags:
     - patching
 
