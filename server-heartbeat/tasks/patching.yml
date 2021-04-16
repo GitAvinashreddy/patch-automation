@@ -31,15 +31,6 @@
   when: "ansible_distribution == 'RedHat'"
   tags:
     - patching
-
-### Katello
-- name: download katello package RPM
-  get_url:
-    url: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
-    dest: /tmp/katello.latest.rpm
-  when: "ansible_distribution == 'RedHat'"
-  tags:
-    - patching
 - name: remove katello package
   yum:
     name: katello-ca-consumer
@@ -76,6 +67,23 @@
       force_register: true
       auto_attach: true
     when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and need_rhel_subscription'
+  tags:
+    - patching
+
+# RHEL repos
+- name: manage RHEL repos
+  block:
+  - name: disable RHEL repos
+    shell: 'subscription-manager repos --disable=*'
+  - name: enable RHEL 7 repos
+    shell: 'subscription-manager repos --enable={{item}}'
+    with_items: '{{ rhel7_enabled_repos }}'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7")'
+  - name: enable RHEL 8 repos
+    shell: 'subscription-manager repos --enable={{item}}'
+    with_items: '{{ rhel8_enabled_repos }}'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8")'
+  when: 'ansible_distribution == "RedHat"'
   tags:
     - patching
 
