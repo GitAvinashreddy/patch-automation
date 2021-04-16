@@ -75,7 +75,7 @@
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
-      register: rhel_restart_required
+      register: rhel7_restart_required
       ignore_errors: yes
   when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7\\S*')"
   tags:
@@ -93,7 +93,7 @@
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
-      register: rhel_restart_required
+      register: rhel8_restart_required
       ignore_errors: yes
   when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8\\*')"
   tags:
@@ -172,7 +172,14 @@
       - patching
 - name: notify patching stage ended / reboot RHEL servers if necessary
   shell: "uptime"
-  when: "ansible_distribution == 'RedHat' and rhel_restart_required==1"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7') and rhel7_restart_required.rc==1"
+  notify:
+      - reboot
+  tags:
+      - patching
+- name: notify patching stage ended / reboot RHEL servers if necessary
+  shell: "uptime"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8') and rhel8_restart_required.rc==1"
   notify:
       - reboot
   tags:
