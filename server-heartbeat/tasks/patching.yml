@@ -1,9 +1,4 @@
 ---
-- debug:
-    msg: "{{ ansible_distribution_major_version }}"
-  tags:
-    - patching
-
 ### Subscription status
 - name: show subscription status
   block:
@@ -13,7 +8,7 @@
       ignore_errors: true
       when: "ansible_distribution == 'RedHat'"
     - set_fact:
-        rhel_subscription: '{{ not "This system is not yet registered." in rhel_subscription_status.stdout }}'
+        rhel_subscription: '{{ "This system is not yet registered." in rhel_subscription_status.stderr }}'
     - debug:
         msg: "{{ rhel_subscription_status.stdout_lines }}"
       when: "ansible_distribution == 'RedHat'"
@@ -58,7 +53,7 @@
       state: present
       force_register: true
       auto_attach: true
-    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7") and not rhel_subscription'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7") and rhel_subscription'
   - name: subscripbe to RHEL 8
     redhat_subscription:
       activationkey: '{{ rhel8_activation_key }}'
@@ -66,7 +61,7 @@
       state: present
       force_register: true
       auto_attach: true
-    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and not rhel_subscription'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and rhel_subscription'
   tags:
     - patching
 
