@@ -3,7 +3,8 @@
 ansible_server_logs_path: /data-export
 remote_logs_path: /data-export
 # RHEL vars
-rhel_activation_key: ''
+rhel7_activation_key: ''
+rhel8_activation_key: ''
 organization_id: ''
 rhel7_enabled_repos:
   - rhel-7-server-rpms
