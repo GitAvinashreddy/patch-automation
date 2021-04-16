@@ -33,7 +33,7 @@
     - patching
 - name: remove katello package
   yum:
-    name: katello-ca-consumer
+    name: katello-ca-consumer-satellite1.theserverindia.com
     state: absent
   tags:
     - patching
