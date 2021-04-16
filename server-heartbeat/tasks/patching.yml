@@ -157,8 +157,7 @@
   block:
     - name: run apt update
       apt:
-        name: "*"
-        state: latest
+        upgrade: dist
     - name: Check if a reboot is needed on all Ubuntu based servers
       register: ubuntu_reboot_required_file
       stat:
