@@ -32,8 +32,22 @@
   tags:
     - patching
 
+### Katello
+- name: download katello package RPM
+  get_url:
+    url: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
+    dest: /tmp/katello.latest.rpm
+  when: "ansible_distribution == 'RedHat'"
+  tags:
+    - patching
+- name: remove katello package
+  yum:
+    name: katello-ca-consumer
+    state: absent
+  tags:
+    - patching
 - name: update katello package
-  shell: "rpm -Uhv /tmp/katello.latest.rpm && rm /tmp/katello.latest.rpm"
+  shell: "rpm -ihv /tmp/katello.latest.rpm && rm /tmp/katello.latest.rpm"
   when: "ansible_distribution == 'RedHat'"
   tags:
     - patching
