@@ -21,6 +21,21 @@
   tags:
     - patching
 
+### Katello
+- name: download katello package RPM
+  get_url:
+    url: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
+    dest: /tmp/katello.latest.rpm
+  when: "ansible_distribution == 'RedHat'"
+  tags:
+    - patching
+
+- name: update katello package
+  shell: "rpm -i /tmp/katello.latest.rpm && rm /tmp/katello.latest.rpm"
+  when: "ansible_distribution == 'RedHat'"
+  tags:
+    - patching
+
 - name: subscription
   block:
     ### SUSE subscription
@@ -36,16 +51,6 @@
       state: present
       auto_attach: true
     when: 'ansible_distribution == "RedHat" and rhel_subscription.rc!=0'
-  tags:
-    - patching
-
-### Katello
-- name: update katello package
-  yum:
-    name: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
-    state: present
-  ignore_errors: true
-  when: "ansible_distribution == 'RedHat'"
   tags:
     - patching
 
