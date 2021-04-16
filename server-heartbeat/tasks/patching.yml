@@ -12,6 +12,7 @@
       when: "ansible_distribution == 'RedHat'"
     - set_fact:
         need_rhel_subscription: '{{ "This system is not yet registered" in rhel_subscription.stderr }}'
+      when: "ansible_distribution == 'RedHat'"
     - name: get SUSE/SLES subscription status
       shell: "SUSEConnect -s"
       register: suse_subscription
