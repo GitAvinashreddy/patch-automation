@@ -1,72 +1,27 @@
 ---
-- debug:
-    msg: "{{ ansible_distribution_major_version }}"
+# exclude packages
+- name: write exclude to YUM conf
+  lineinfile:
+    path: /etc/yum.conf
+    line: "exclude={{ '* '.join(packages_to_exclude) }}*"
+  when: 'ansible_distribution == "RedHat"'
   tags:
     - patching
 
-### Subscription status
-- name: show subscription status
+# RHEL repos
+- name: manage RHEL repos
   block:
-    - name: get RHEL subscription status
-      shell: "subscription-manager identity"
-      register: rhel_subscription_status
-      ignore_errors: true
-      when: "ansible_distribution == 'RedHat'"
-    - set_fact:
-        rhel_subscription: '{{ not "This system is not yet registered." in rhel_subscription_status.stdout }}'
-    - debug:
-        msg: "{{ rhel_subscription_status.stdout_lines }}"
-      when: "ansible_distribution == 'RedHat'"
-    - name: get SUSE/SLES subscription status
-      shell: "SUSEConnect -s"
-      register: suse_subscription
-      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
-      ignore_errors: true
-    - debug:
-        msg: "{{ suse_subscription.stdout_lines }}"
-      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
-  tags:
-    - patching
-
-### Katello
-- name: download katello package RPM
-  get_url:
-    url: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
-    dest: /tmp/katello.latest.rpm
-  when: "ansible_distribution == 'RedHat'"
-  tags:
-    - patching
-
-- name: update katello package
-  shell: "rpm -i /tmp/katello.latest.rpm && rm /tmp/katello.latest.rpm"
-  when: "ansible_distribution == 'RedHat'"
-  tags:
-    - patching
-
-- name: subscription
-  block:
-    ### SUSE subscription
-  - name: subscribe to SUSE/SLES
-    shell: "SUSEConnect -r {{ suse_activation_key }}"
-    ignore_errors: true
-    when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
-  ### RHEL subscription
-  - name: subscripbe to RHEL 7
-    redhat_subscription:
-      activationkey: '{{ rhel7_activation_key }}'
-      org_id: '{{ organization_id }}'
-      state: present
-      force_register: true
-      auto_attach: true
-    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7") and not rhel_subscription'
-  - name: subscripbe to RHEL 8
-    redhat_subscription:
-      activationkey: '{{ rhel8_activation_key }}'
-      org_id: '{{ organization_id }}'
-      state: present
-      force_register: true
-      auto_attach: true
-    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and not rhel_subscription'
+  - name: disable RHEL repos
+    shell: 'subscription-manager repos --disable=*'
+  - name: enable RHEL 7 repos
+    shell: 'subscription-manager repos --enable={{item}}'
+    with_items: '{{ rhel7_enabled_repos }}'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7")'
+  - name: enable RHEL 8 repos
+    shell: 'subscription-manager repos --enable={{item}}'
+    with_items: '{{ rhel8_enabled_repos }}'
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8")'
+  when: 'ansible_distribution == "RedHat"'
   tags:
     - patching
 
@@ -82,7 +37,7 @@
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
-      register: rhel_restart_required
+      register: rhel7_restart_required
       ignore_errors: yes
   when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7\\S*')"
   tags:
@@ -100,7 +55,7 @@
         state: latest
     - name: Check if a reboot is needed on all RHEL based servers
       command: needs-restarting -r
-      register: rhel_restart_required
+      register: rhel8_restart_required
       ignore_errors: yes
   when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8\\*')"
   tags:
@@ -142,8 +97,7 @@
   block:
     - name: run apt update
       apt:
-        name: "*"
-        state: latest
+        upgrade: dist
     - name: Check if a reboot is needed on all Ubuntu based servers
       register: ubuntu_reboot_required_file
       stat:
@@ -179,7 +133,14 @@
       - patching
 - name: notify patching stage ended / reboot RHEL servers if necessary
   shell: "uptime"
-  when: "ansible_distribution == 'RedHat' and rhel_restart_required==1"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('7') and rhel7_restart_required.rc==1"
+  notify:
+      - reboot
+  tags:
+      - patching
+- name: notify patching stage ended / reboot RHEL servers if necessary
+  shell: "uptime"
+  when: "ansible_distribution == 'RedHat' and ansible_distribution_major_version is match('8') and rhel8_restart_required.rc==1"
   notify:
       - reboot
   tags:
