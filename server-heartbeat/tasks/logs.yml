@@ -1,8 +1,71 @@
 ---
 ### LOGS ###
-- name: distro data
-  debug:
-    msg: "{{ ansible_distribution }}"
+### Subscription status
+- name: show subscription status
+  block:
+    - name: get RHEL subscription status
+      shell: "subscription-manager identity"
+      register: rhel_subscription
+      ignore_errors: true
+      when: "ansible_distribution == 'RedHat'"
+    - debug:
+        msg: "{{ rhel_subscription.stdout_lines or rhel_subscription.stderr_lines }}"
+      when: "ansible_distribution == 'RedHat'"
+    - set_fact:
+        need_rhel_subscription: '{{ "This system is not yet registered" in rhel_subscription.stderr }}'
+      when: "ansible_distribution == 'RedHat'"
+    - name: get SUSE/SLES subscription status
+      shell: "SUSEConnect -s"
+      register: suse_subscription
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+      ignore_errors: true
+    - debug:
+        msg: "{{ suse_subscription.stdout_lines or suse_subscription.stderr_lines }}"
+      when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
+  tags:
+    - logs
+
+### Katello
+- name: katello package
+  block:
+  - name: download katello package RPM
+    get_url:
+      url: 'http://satellite6/pub/katello-ca-consumer-latest.noarch.rpm'
+      dest: /tmp/katello.latest.rpm
+  - name: remove katello package
+    yum:
+      name: katello-ca-consumer-satellite1.theserverindia.com
+      state: absent
+  - name: update katello package
+    shell: "rpm -ihv /tmp/katello.latest.rpm && rm /tmp/katello.latest.rpm"
+  when: "ansible_distribution == 'RedHat'"
+  tags:
+    - logs
+
+- name: subscription
+  block:
+    ### SUSE subscription
+  - name: subscribe to SUSE/SLES
+    shell: "SUSEConnect -r {{ suse_activation_key }}"
+    ignore_errors: true
+    when: "('SUSE' in ansible_distribution or 'SLES' in ansible_distribution) and suse_subscription.rc!=0"
+  ### RHEL subscription
+  - name: subscripbe to RHEL 7
+    redhat_subscription:
+      activationkey: '{{ rhel7_activation_key }}'
+      org_id: '{{ organization_id }}'
+      state: present
+      force_register: true
+      auto_attach: true
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("7") and need_rhel_subscription'
+  - name: subscripbe to RHEL 8
+    redhat_subscription:
+      activationkey: '{{ rhel8_activation_key }}'
+      org_id: '{{ organization_id }}'
+      state: present
+      force_register: true
+      auto_attach: true
+    when: 'ansible_distribution == "RedHat" and ansible_distribution_major_version is match("8") and need_rhel_subscription'
   tags:
     - logs
 
