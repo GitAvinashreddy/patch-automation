@@ -135,12 +135,12 @@
     - name: read network cfg file Ubuntu [PRE]
       shell: "cat /etc/netplan/01-netcfg.yaml"
       ignore_errors: true
-      register: syscfg_net_ubuntu
+      register: syscfg_net_post_ubuntu
       when: "ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '18'"
     - name: read network cfg files SUSE/SLES [PRE]
       shell: "cat /etc/networks"
       ignore_errors: true
-      register: syscfg_net_suse
+      register: syscfg_net_post_suse
       when: "'SUSE' in ansible_distribution or 'SLES' in ansible_distribution"
     - name: set fact syscfg
       set_fact:
