@@ -47,6 +47,7 @@
 - name: Move previous logs tarballs
   command: "mv {{ item.path }} {{ ansible_server_logs_path }}/prev/"
   with_items: "{{ prev_logs.files }}"
+  ignore_errors: true
   delegate_to: localhost
   tags:
     - fetch
